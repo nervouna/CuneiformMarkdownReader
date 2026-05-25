@@ -49,14 +49,14 @@ public struct HTMLTemplate {
     }
 
     private static func assetURL(_ name: String, extension ext: String) -> URL? {
-        if let url = Bundle.module.url(forResource: name, withExtension: ext) {
-            return url
-        }
-        return Bundle.main.url(
+        if let url = Bundle.main.url(
             forResource: name,
             withExtension: ext,
-            subdirectory: "SimpleMarkdownPreviewer_SimpleMarkdownPreviewerCore.bundle"
-        )
+            subdirectory: "PreviewAssets"
+        ) {
+            return url
+        }
+        return Bundle.module.url(forResource: name, withExtension: ext)
     }
 }
 

@@ -11,5 +11,8 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$EXECUTABLE" "$APP_DIR/Contents/MacOS/SimpleMarkdownPreviewer"
 cp Resources/Info.plist "$APP_DIR/Contents/Info.plist"
 printf 'APPL????' > "$APP_DIR/Contents/PkgInfo"
-find "$BIN_DIR" -maxdepth 1 \( -name "*SimpleMarkdownPreviewerCore*.resources" -o -name "*SimpleMarkdownPreviewerCore*.bundle" \) -exec cp -R {} "$APP_DIR/Contents/Resources/" \;
+RESOURCE_BUNDLE="$(find "$BIN_DIR" -maxdepth 1 \( -name "*SimpleMarkdownPreviewerCore*.resources" -o -name "*SimpleMarkdownPreviewerCore*.bundle" \) -print -quit)"
+test -n "$RESOURCE_BUNDLE"
+mkdir -p "$APP_DIR/Contents/Resources/PreviewAssets"
+cp -R "$RESOURCE_BUNDLE"/. "$APP_DIR/Contents/Resources/PreviewAssets/"
 codesign --force --deep --sign - "$APP_DIR" >/dev/null

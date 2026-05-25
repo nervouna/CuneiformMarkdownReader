@@ -1,0 +1,99 @@
+:root {
+  color-scheme: light dark;
+  --page-bg: Canvas;
+  --text: CanvasText;
+  --muted: color-mix(in srgb, CanvasText 62%, Canvas 38%);
+  --border: color-mix(in srgb, CanvasText 18%, Canvas 82%);
+  --code-bg: color-mix(in srgb, CanvasText 6%, Canvas 94%);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--page-bg);
+  color: var(--text);
+  font: -apple-system-body;
+  font-size: calc(16px * var(--font-scale, 1));
+}
+
+body.theme-light {
+  color-scheme: light;
+}
+
+body.theme-dark {
+  color-scheme: dark;
+}
+
+.markdown-body {
+  box-sizing: border-box;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 42px 32px 72px;
+  line-height: 1.62;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.22;
+  margin: 1.6em 0 0.55em;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child {
+  margin-top: 0;
+}
+
+p,
+ul,
+ol,
+blockquote,
+pre,
+table {
+  margin: 0 0 1em;
+}
+
+blockquote {
+  margin-left: 0;
+  padding-left: 1em;
+  color: var(--muted);
+  border-left: 3px solid var(--border);
+}
+
+pre {
+  overflow-x: auto;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.task-list-item {
+  list-style: none;
+}

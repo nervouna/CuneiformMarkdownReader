@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = try defaultViewerService.setCurrentAppAsDefaultMarkdownViewer()
             presentAlert(
                 message: "已设为默认 Markdown 阅读器",
-                informativeText: "之后双击 .md 和 .markdown 文件会用 SimpleMarkdownPreviewer 打开。"
+                informativeText: "之后双击 .md 和 .markdown 文件会用 Cuneiform 打开。"
             )
         } catch {
             presentAlert(
@@ -134,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "SimpleMarkdownPreviewer"
+        window.title = "Cuneiform"
         window.center()
         window.contentView = NSHostingView(rootView: ContentView(appState: appState))
         window.makeKeyAndOrderFront(nil)
@@ -153,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         appMenu.addItem(.separator())
         appMenu.addItem(
-            withTitle: "Quit SimpleMarkdownPreviewer",
+            withTitle: "Quit Cuneiform",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

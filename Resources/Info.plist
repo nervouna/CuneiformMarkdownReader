@@ -5,13 +5,13 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>SimpleMarkdownPreviewer</string>
+    <string>Cuneiform</string>
     <key>CFBundleIdentifier</key>
-    <string>com.damao.simple-markdown-previewer</string>
+    <string>io.damao.cuneiform</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>SimpleMarkdownPreviewer</string>
+    <string>Cuneiform</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

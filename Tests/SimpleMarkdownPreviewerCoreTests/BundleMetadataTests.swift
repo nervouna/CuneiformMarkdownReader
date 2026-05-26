@@ -5,6 +5,15 @@ import Testing
 @Suite
 struct BundleMetadataTests {
     @Test
+    func declaresCuneiformBundleIdentity() throws {
+        let plist = try infoPlist()
+
+        #expect(plist["CFBundleName"] as? String == "Cuneiform")
+        #expect(plist["CFBundleExecutable"] as? String == "Cuneiform")
+        #expect(plist["CFBundleIdentifier"] as? String == "io.damao.cuneiform")
+    }
+
+    @Test
     func declaresMarkdownContentTypeForLaunchServices() throws {
         let plist = try infoPlist()
         let declarations = try #require(plist["UTImportedTypeDeclarations"] as? [[String: Any]])

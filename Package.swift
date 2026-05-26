@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "SimpleMarkdownPreviewer",
+    name: "Cuneiform",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "SimpleMarkdownPreviewer", targets: ["SimpleMarkdownPreviewerApp"]),
+        .executable(name: "Cuneiform", targets: ["SimpleMarkdownPreviewerApp"]),
         .library(name: "SimpleMarkdownPreviewerCore", targets: ["SimpleMarkdownPreviewerCore"])
     ],
     dependencies: [

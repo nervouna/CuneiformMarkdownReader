@@ -8,6 +8,8 @@
     <string>Cuneiform</string>
     <key>CFBundleIdentifier</key>
     <string>io.damao.cuneiform</string>
+    <key>CFBundleIconFile</key>
+    <string>Cuneiform</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

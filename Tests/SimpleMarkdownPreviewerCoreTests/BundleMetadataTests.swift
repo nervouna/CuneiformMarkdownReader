@@ -11,6 +11,7 @@ struct BundleMetadataTests {
         #expect(plist["CFBundleName"] as? String == "Cuneiform")
         #expect(plist["CFBundleExecutable"] as? String == "Cuneiform")
         #expect(plist["CFBundleIdentifier"] as? String == "io.damao.cuneiform")
+        #expect(plist["CFBundleIconFile"] as? String == "Cuneiform")
     }
 
     @Test

@@ -81,3 +81,7 @@ The release DMG is written to:
 - Swift target/module names intentionally remain `SimpleMarkdownPreviewerApp` and `SimpleMarkdownPreviewerCore`.
 - Icon source: `Resources/Cuneiform.png`
 - Bundle icon: `Resources/Cuneiform.icns`
+
+## License
+
+WTFPL. See `LICENSE`.

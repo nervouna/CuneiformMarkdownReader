@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pendingOpenURLs: [URL] = []
     private let appState = AppState()
+    private let defaultViewerService = DefaultMarkdownViewerService()
     private var window: NSWindow?
     private var didStart = false
 
@@ -67,6 +68,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appState.reload()
     }
 
+    @objc private func setAsDefaultMarkdownViewer(_ sender: Any?) {
+        do {
+            _ = try defaultViewerService.setCurrentAppAsDefaultMarkdownViewer()
+            presentAlert(
+                message: "已设为默认 Markdown 阅读器",
+                informativeText: "之后双击 .md 和 .markdown 文件会用 SimpleMarkdownPreviewer 打开。"
+            )
+        } catch {
+            presentAlert(
+                message: "无法设置默认 Markdown 阅读器",
+                informativeText: "\(error.localizedDescription)\n\n你仍然可以在 Finder 的“显示简介”里通过“打开方式”手动设置。"
+            )
+        }
+    }
+
     @objc private func increaseTextSize(_ sender: Any?) {
         appState.updatePreferences { preferences in
             preferences.fontScale = min(preferences.fontScale + 0.1, 1.6)
@@ -97,6 +113,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func presentAlert(message: String, informativeText: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = informativeText
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "好")
+
+        if let window {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
+    }
+
     private func createWindow() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 860, height: 720),
@@ -116,6 +146,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
+        appMenu.addItem(
+            withTitle: "设为默认 Markdown 阅读器",
+            action: #selector(setAsDefaultMarkdownViewer(_:)),
+            keyEquivalent: ""
+        )
+        appMenu.addItem(.separator())
         appMenu.addItem(
             withTitle: "Quit SimpleMarkdownPreviewer",
             action: #selector(NSApplication.terminate(_:)),

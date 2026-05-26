@@ -15,3 +15,7 @@ fi
 codesign --verify --deep --strict "$APP"
 /usr/libexec/PlistBuddy -c "Print :CFBundleDocumentTypes:0:CFBundleTypeExtensions:0" "$INFO" | grep -qx "md"
 /usr/libexec/PlistBuddy -c "Print :CFBundleDocumentTypes:0:CFBundleTypeExtensions:1" "$INFO" | grep -qx "markdown"
+/usr/libexec/PlistBuddy -c "Print :CFBundleDocumentTypes:0:LSItemContentTypes:0" "$INFO" | grep -qx "net.daringfireball.markdown"
+/usr/libexec/PlistBuddy -c "Print :UTImportedTypeDeclarations:0:UTTypeIdentifier" "$INFO" | grep -qx "net.daringfireball.markdown"
+/usr/libexec/PlistBuddy -c "Print :UTImportedTypeDeclarations:0:UTTypeTagSpecification:public.filename-extension:0" "$INFO" | grep -qx "md"
+/usr/libexec/PlistBuddy -c "Print :UTImportedTypeDeclarations:0:UTTypeTagSpecification:public.filename-extension:1" "$INFO" | grep -qx "markdown"

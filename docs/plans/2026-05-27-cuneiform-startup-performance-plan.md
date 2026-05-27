@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make Cuneiform consistently launch Markdown documents at TextEdit-class speed, with a target of `p50 <= 550ms` from LaunchServices open to document content visible.
+**Goal:** Make Cuneiform consistently launch Markdown documents at TextEdit-class speed, with a release gate of `p50 <= 400ms` from LaunchServices open to document content visible.
 
 **Architecture:** Treat startup performance as a measured product contract, not an assumed code property. Add an explicit startup measurement harness, verify that the measured app is the release bundle the user actually opens, remove duplicate open work, then run a gated `WKWebView` prewarm experiment and keep it only if it improves measured launch time.
 
@@ -34,9 +34,11 @@ Sources/SimpleMarkdownPreviewerApp/PreviewWebView.swift
 Sources/SimpleMarkdownPreviewerApp/StartupProbe.swift
 Tests/SimpleMarkdownPreviewerCoreTests/HTMLTemplateTests.swift
 Tests/ScriptTests/test_build_app_script.sh
+Tests/ScriptTests/test_startup_performance_gate.sh
 Tests/ScriptTests/test_startup_measure_script.sh
 scripts/build_app.sh
 scripts/check.sh
+scripts/gate_startup_performance.sh
 scripts/measure_startup.sh
 scripts/verify_default_viewer.sh
 ```
@@ -48,6 +50,7 @@ Responsibility map:
 - `AppState.swift`: document loading and render state. It should remain the source of truth for the current document.
 - `ContentView.swift` and `PreviewWebView.swift`: persistent preview surface and optional WebKit prewarm experiment.
 - `scripts/measure_startup.sh`: repeatable benchmark comparing Cuneiform and TextEdit with p50/p95 output.
+- `scripts/gate_startup_performance.sh`: release-only performance gate that measures `/Applications/Cuneiform.app` and fails when Cuneiform external cold-start p50 is above the configured threshold.
 - `scripts/verify_default_viewer.sh`: confirms LaunchServices default handler points at the expected Cuneiform bundle id.
 - script tests: keep measurement and build-script regressions checkable without running GUI timing in the default suite.
 
@@ -56,13 +59,13 @@ Responsibility map:
 The plan uses two measurement modes:
 
 - **External baseline:** `open -n -a <app> <file>` to first visible window for TextEdit and Cuneiform.
-- **Cuneiform precise mode:** env-gated probe logs `webview.didFinish` when WebView finishes the first document load, then exits if `CUNEIFORM_STARTUP_PROBE_QUIT=1`.
+- **Cuneiform precise mode:** env-gated probe logs `webview.contentReady` or `native.contentReady` when the first document is ready, then exits if `CUNEIFORM_STARTUP_PROBE_QUIT=1`.
 
 Acceptance threshold:
 
-- Primary: Cuneiform release bundle `p50 <= 550ms` over 10 LaunchServices launches on the test machine.
-- Secondary: Cuneiform `p50` should be within 15% of TextEdit measured in the same run.
-- Diagnostic: `p95` should be reported, but not used as a hard gate until more machines are sampled.
+- Release gate: Cuneiform release bundle external `p50 <= 400ms` over 20 LaunchServices launches on the release machine.
+- Engineering target: optimize toward `p50 <= 350ms` so the release gate has practical headroom.
+- Diagnostic: TextEdit p50, Cuneiform app-internal p50, and Cuneiform p95 should be reported, but only Cuneiform external p50 is a hard release gate until more machines are sampled.
 
 ## Task 1: Release Bundle Guardrail
 
@@ -831,7 +834,7 @@ Run:
 ITERATIONS=10 ./scripts/measure_startup.sh README.md
 ```
 
-Expected: Cuneiform `p50 <= 550ms`. Compare against the pre-change benchmark from Step 1. Keep the change only if `p50` or `p95` improves without visual regressions.
+Expected: Cuneiform external `p50 <= 400ms`. Compare against the pre-change benchmark from Step 1. Keep the change only if external `p50` improves without visual regressions. Record `p95` as a diagnostic signal only.
 
 - [ ] **Step 7: Commit or revert based on the data**
 
@@ -853,34 +856,58 @@ git restore Sources/SimpleMarkdownPreviewerApp/ContentView.swift \
 ## Task 7: Final Startup Gate and Full Verification
 
 **Files:**
-- Modify: `README.md` if user-facing performance notes are needed
-- Existing verification scripts only otherwise
+- Create: `scripts/gate_startup_performance.sh`
+- Create: `Tests/ScriptTests/test_startup_performance_gate.sh`
+- Modify: `scripts/check.sh`
+- Modify: `README.md`
+- Modify: `AGENTS.md`
 
-- [ ] **Step 1: Run the startup benchmark**
+- [ ] **Step 1: Add the release gate script contract**
+
+Create `Tests/ScriptTests/test_startup_performance_gate.sh` to verify:
+
+- `scripts/gate_startup_performance.sh` exists and is shell-syntax valid;
+- the default `CUNEIFORM_STARTUP_P50_MAX_MS` is `400`;
+- the default `ITERATIONS` is `20`;
+- the gate measures `/Applications/Cuneiform.app`;
+- the gate parses `Cuneiform external` `p50=` output and exits non-zero on failure;
+- `scripts/check.sh` runs the contract test.
+
+- [ ] **Step 2: Implement the release gate script**
+
+Create `scripts/gate_startup_performance.sh`:
+
+- force `CUNEIFORM_APP=/Applications/Cuneiform.app`;
+- unset `CUNEIFORM_RENDERER` so the app's default renderer is measured;
+- call `scripts/measure_startup.sh`;
+- parse `Cuneiform external` p50 from the measurement output;
+- fail if p50 is above `CUNEIFORM_STARTUP_P50_MAX_MS`.
+
+- [ ] **Step 3: Run the startup release gate**
 
 Run:
 
 ```bash
 ./scripts/build_app.sh
-ITERATIONS=10 ./scripts/measure_startup.sh README.md
+ITERATIONS=20 ./scripts/gate_startup_performance.sh README.md
 ```
 
 Expected:
 
 ```text
-TextEdit: count=10 ... p50=<number>ms p95=<number>ms ...
-Cuneiform external: count=10 ... p50=<number>ms p95=<number>ms ...
-Cuneiform app-internal: count=10 ... p50=<number>ms p95=<number>ms ...
+TextEdit: count=20 ... p50=<number>ms p95=<number>ms ...
+Cuneiform external: count=20 ... p50=<number>ms p95=<number>ms ...
+Cuneiform app-internal: count=20 ... p50=<number>ms p95=<number>ms ...
+Cuneiform startup gate passed: external p50 <number>ms <= 400.00ms
 ```
 
 Acceptance:
 
 ```text
-Cuneiform external p50 <= 550ms
-Cuneiform external p50 <= TextEdit p50 * 1.15
+Cuneiform external p50 <= 400ms
 ```
 
-- [ ] **Step 2: Run full project verification**
+- [ ] **Step 4: Run full project verification**
 
 Run:
 
@@ -888,29 +915,29 @@ Run:
 ./scripts/check.sh
 ```
 
-Expected: Swift tests, Swift build, app bundle verification, and DMG packaging checks all pass.
+Expected: Swift tests, Swift build, script-contract tests, app bundle verification, and DMG packaging checks all pass.
 
-- [ ] **Step 3: Simplify pass**
+- [ ] **Step 5: Simplify pass**
 
 Review:
 
 ```bash
 git diff --stat
-git diff -- Sources scripts Tests README.md
+git diff -- scripts Tests README.md AGENTS.md docs/plans/2026-05-27-cuneiform-startup-performance-plan.md
 ```
 
 Remove:
 
-- probe code paths that run without `CUNEIFORM_STARTUP_PROBE=1`;
+- release gate paths that measure anything other than `/Applications/Cuneiform.app`;
 - measurement output committed to the repo;
 - unrelated formatting churn;
-- unused helpers introduced during the WebView experiment.
+- unused helpers introduced during the gate implementation.
 
-- [ ] **Step 4: Request pre-commit review**
+- [ ] **Step 6: Request pre-commit review**
 
 Use `superpowers:requesting-code-review` before committing final implementation changes.
 
-- [ ] **Step 5: Commit final measurement and verification updates**
+- [ ] **Step 7: Commit final measurement and verification updates**
 
 ```bash
 git add .

@@ -58,12 +58,21 @@ CUNEIFORM_RENDERER=webview CUNEIFORM_APP=/Applications/Cuneiform.app ITERATIONS=
 
 Before treating measurements as product evidence, rebuild with `./scripts/check.sh`, install `.build/app/Cuneiform.app` to `/Applications/Cuneiform.app`, verify the default Markdown viewer, and confirm the installed bundle matches `.build/app`.
 
+Run the release startup performance gate before signing and publishing:
+
+```bash
+ITERATIONS=20 ./scripts/gate_startup_performance.sh path/to/file.md
+```
+
+The release gate measures `/Applications/Cuneiform.app` through LaunchServices and fails when Cuneiform external cold-start `p50` is above `400ms`.
+
 ## Release
 
 `scripts/build_app.sh` produces an adhoc-signed development bundle. For public distribution, rebuild, sign with Developer ID, notarize, staple, then package the DMG:
 
 ```bash
 ./scripts/build_app.sh
+ITERATIONS=20 ./scripts/gate_startup_performance.sh path/to/file.md
 
 codesign --force \
   --deep \

@@ -4,6 +4,7 @@ set -euo pipefail
 swift test
 swift build
 if [[ -f Resources/Info.plist ]]; then
+  Tests/ScriptTests/test_build_app_script.sh
   ./scripts/build_app.sh
   ./scripts/verify_bundle.sh
   ./scripts/package_dmg.sh --output .build/release-test/Cuneiform-verified.dmg

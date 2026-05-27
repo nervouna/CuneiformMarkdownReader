@@ -7,11 +7,8 @@ public struct HTMLTemplate {
         let safeTitle = title.htmlEscaped()
         let themeClass = "theme-\(preferences.appearanceMode.rawValue)"
         let fontScale = String(format: "%.2f", preferences.fontScale)
-        let previewCSS = try Self.assetText("preview", extension: "css")
-        let highlightLightCSS = try Self.assetText("highlight-github", extension: "css")
-        let highlightDarkCSS = try Self.assetText("highlight-github-dark", extension: "css")
-        let highlightJS = try Self.assetText("highlight.min", extension: "js")
-        let previewJS = try Self.assetText("preview", extension: "js")
+        let previewCSS = try Self.previewCSS()
+        let syntaxHighlighting = try Self.syntaxHighlightingMarkup(for: body)
 
         return """
         <!doctype html>
@@ -23,14 +20,7 @@ public struct HTMLTemplate {
           <title>\(safeTitle)</title>
           <style>:root { --font-scale: \(fontScale); }</style>
           <style>\(previewCSS)</style>
-          <style>\(highlightLightCSS)</style>
-          <style>
-          @media (prefers-color-scheme: dark) { \(highlightDarkCSS) }
-          body.theme-dark { \(highlightDarkCSS) }
-          body.theme-light { \(highlightLightCSS) }
-          </style>
-          <script>\(highlightJS)</script>
-          <script>\(previewJS)</script>
+        \(syntaxHighlighting)
         </head>
         <body class="\(themeClass)">
           <main class="markdown-body">
@@ -38,6 +28,46 @@ public struct HTMLTemplate {
           </main>
         </body>
         </html>
+        """
+    }
+
+    private struct SyntaxAssets {
+        let highlightLightCSS: String
+        let highlightDarkCSS: String
+        let highlightJS: String
+        let previewJS: String
+    }
+
+    private static let cachedPreviewCSS: Result<String, Error> = Result(catching: {
+        try assetText("preview", extension: "css")
+    })
+
+    private static let cachedSyntaxAssets: Result<SyntaxAssets, Error> = Result(catching: {
+        try SyntaxAssets(
+            highlightLightCSS: assetText("highlight-github", extension: "css"),
+            highlightDarkCSS: assetText("highlight-github-dark", extension: "css"),
+            highlightJS: assetText("highlight.min", extension: "js"),
+            previewJS: assetText("preview", extension: "js")
+        )
+    })
+
+    private static func previewCSS() throws -> String {
+        try cachedPreviewCSS.get()
+    }
+
+    private static func syntaxHighlightingMarkup(for body: String) throws -> String {
+        guard body.contains("<pre><code") else { return "" }
+
+        let assets = try cachedSyntaxAssets.get()
+        return """
+          <style>\(assets.highlightLightCSS)</style>
+          <style>
+          @media (prefers-color-scheme: dark) { \(assets.highlightDarkCSS) }
+          body.theme-dark { \(assets.highlightDarkCSS) }
+          body.theme-light { \(assets.highlightLightCSS) }
+          </style>
+          <script>\(assets.highlightJS)</script>
+          <script>\(assets.previewJS)</script>
         """
     }
 

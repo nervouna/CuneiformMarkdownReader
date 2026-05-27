@@ -4,8 +4,8 @@ set -euo pipefail
 APP_DIR=".build/app/Cuneiform.app"
 LEGACY_APP_DIR=".build/app/SimpleMarkdownPreviewer.app"
 
-swift build
-BIN_DIR="$(swift build --show-bin-path)"
+swift build -c release
+BIN_DIR="$(swift build -c release --show-bin-path)"
 EXECUTABLE="$BIN_DIR/Cuneiform"
 rm -rf "$APP_DIR" "$LEGACY_APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"

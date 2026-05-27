@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "SimpleMarkdownPreviewerCore", targets: ["SimpleMarkdownPreviewerCore"])
     ],
     dependencies: [
-        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.8.0")
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.8.0"),
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", exact: "2.4.1")
     ],
     targets: [
         .target(
@@ -25,7 +26,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "SimpleMarkdownPreviewerApp",
-            dependencies: ["SimpleMarkdownPreviewerCore"]
+            dependencies: [
+                "SimpleMarkdownPreviewerCore",
+                .product(name: "MarkdownUI", package: "swift-markdown-ui")
+            ]
         ),
         .testTarget(
             name: "SimpleMarkdownPreviewerCoreTests",

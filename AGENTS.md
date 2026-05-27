@@ -17,6 +17,14 @@
 - `./scripts/check.sh` covers Swift tests, Swift build, app bundle construction, bundle metadata verification, and DMG packaging checks.
 - Do not commit `.build/` artifacts.
 
+## Renderer And Measurement
+
+- Cuneiform uses the native Markdown renderer by default. Keep `CUNEIFORM_RENDERER=webview` available as the legacy WebView fallback.
+- Renderer default changes must update these files together: `Sources/SimpleMarkdownPreviewerApp/PreviewRendererMode.swift`, `scripts/measure_startup.sh`, `Tests/ScriptTests/test_native_markdown_renderer_contract.sh`, `README.md`, and the relevant plan document under `docs/plans/`.
+- Native preview code must preserve `ResourcePolicy` behavior for local images and external links. Do not rely on third-party Markdown renderer default resource loading without checking its image and URL handling.
+- Startup performance decisions must be based on the final checked app bundle: run `./scripts/check.sh`, install `.build/app/Cuneiform.app` to `/Applications/Cuneiform.app`, verify the default Markdown viewer, confirm key file hashes match `.build/app`, then run LaunchServices measurements.
+- Sandbox-limited LaunchServices checks may not reflect the real system database. Final default-viewer and `/Applications` measurements should run outside the sandbox when the sandbox cannot see the registered app.
+
 ## Build And Release
 
 - Development app bundle:

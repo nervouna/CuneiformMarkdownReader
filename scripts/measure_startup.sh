@@ -33,6 +33,7 @@ cleanup_probe_env() {
   launchctl unsetenv CUNEIFORM_STARTUP_PROBE >/dev/null 2>&1 || true
   launchctl unsetenv CUNEIFORM_STARTUP_PROBE_QUIT >/dev/null 2>&1 || true
   launchctl unsetenv CUNEIFORM_STARTUP_PROBE_LOG >/dev/null 2>&1 || true
+  launchctl unsetenv CUNEIFORM_RENDERER >/dev/null 2>&1 || true
 }
 trap cleanup_probe_env EXIT
 
@@ -70,7 +71,7 @@ measure_textedit_once() {
 wait_for_probe_finish() {
   local log="$1"
   for _ in $(seq 1 1000); do
-    if awk '/webview.contentReady/ { found=1 } END { exit found ? 0 : 1 }' "$log"; then
+    if awk '/webview.contentReady|native.contentReady/ { found=1 } END { exit found ? 0 : 1 }' "$log"; then
       return 0
     fi
     sleep 0.01
@@ -80,7 +81,7 @@ wait_for_probe_finish() {
 
 probe_internal_time() {
   local log="$1"
-  awk '/webview.contentReady/ { value=$2 } END { sub(/ms$/, "", value); print value }' "$log"
+  awk '/webview.contentReady|native.contentReady/ { value=$2 } END { sub(/ms$/, "", value); print value }' "$log"
 }
 
 measure_cuneiform_once() {
@@ -91,18 +92,21 @@ measure_cuneiform_once() {
   launchctl setenv CUNEIFORM_STARTUP_PROBE 1
   launchctl setenv CUNEIFORM_STARTUP_PROBE_QUIT 1
   launchctl setenv CUNEIFORM_STARTUP_PROBE_LOG "$log"
+  if [[ -n "${CUNEIFORM_RENDERER:-}" ]]; then
+    launchctl setenv CUNEIFORM_RENDERER "$CUNEIFORM_RENDERER"
+  fi
   start="$(now_seconds)"
   open -n -a "$APP" "$FILE" >/dev/null
   if ! wait_for_probe_finish "$log"; then
     cleanup_probe_env
-    echo "Cuneiform probe did not report webview.contentReady. Log: $log" >&2
+    echo "Cuneiform probe did not report webview.contentReady or native.contentReady. Log: $log" >&2
     return 1
   fi
   end="$(now_seconds)"
   cleanup_probe_env
   internal="$(probe_internal_time "$log")"
   if [[ -z "$internal" ]]; then
-    echo "Cuneiform probe did not report webview.contentReady. Log: $log" >&2
+    echo "Cuneiform probe did not report webview.contentReady or native.contentReady. Log: $log" >&2
     return 1
   fi
   perl -e 'printf "%.2f %.2f\n", ($ARGV[1] - $ARGV[0]) * 1000, $ARGV[2]' "$start" "$end" "$internal"
@@ -141,6 +145,7 @@ for _ in $(seq 1 "$ITERATIONS"); do
   awk '{ print $2 }' <<<"$sample" >> "$cuneiform_internal_values"
 done
 
+echo "Cuneiform renderer: ${CUNEIFORM_RENDERER:-native}"
 summarize "TextEdit" "$textedit_values"
 summarize "Cuneiform external" "$cuneiform_values"
 summarize "Cuneiform app-internal" "$cuneiform_internal_values"

@@ -50,7 +50,12 @@ struct PreviewWebView: NSViewRepresentable {
 
         @MainActor
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            StartupProbe.finish("webview.didFinish")
+            guard StartupProbe.isEnabled else { return }
+            webView.evaluateJavaScript(
+                "new Promise(resolve => requestAnimationFrame(() => resolve(document.body.innerText.length)))"
+            ) { _, _ in
+                StartupProbe.finish("webview.contentReady")
+            }
         }
     }
 }

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="$ROOT/.build/app/Cuneiform.app"
+APP="${CUNEIFORM_APP:-$ROOT/.build/app/Cuneiform.app}"
 FILE="${1:-$ROOT/README.md}"
 ITERATIONS="${ITERATIONS:-10}"
 LOG_DIR="${TMPDIR:-/tmp}/cuneiform-startup"
@@ -13,8 +13,18 @@ if [[ ! -d "$APP" ]]; then
   echo "Run ./scripts/build_app.sh first." >&2
   exit 1
 fi
+"$ROOT/scripts/verify_default_viewer.sh" "$APP" >/dev/null
 
-if [[ "$(osascript -e 'application "TextEdit" is running')" == "true" ]]; then
+osascript_with_timeout() {
+  perl -MTime::HiRes=alarm -e 'alarm 0.25; exec @ARGV' osascript "$@"
+}
+
+textedit_is_running() {
+  pgrep -x TextEdit >/dev/null 2>&1 ||
+    [[ "$(osascript_with_timeout -e 'tell application "System Events" to exists process "TextEdit"' 2>/dev/null || true)" == "true" ]]
+}
+
+if textedit_is_running; then
   echo "TextEdit is already running. Close TextEdit before measuring to avoid false samples or closing user documents." >&2
   exit 1
 fi
@@ -31,20 +41,28 @@ now_seconds() {
 }
 
 measure_textedit_once() {
-  local start end visible
+  local start end visible process_seen_at
   start="$(now_seconds)"
   open -n -a /System/Applications/TextEdit.app "$FILE"
-  for _ in $(seq 1 500); do
-    visible="$(osascript -e 'tell application "System Events" to exists window 1 of process "TextEdit"' 2>/dev/null || true)"
+  for _ in $(seq 1 20); do
+    if [[ -z "${process_seen_at:-}" ]] && textedit_is_running; then
+      process_seen_at="$(now_seconds)"
+    fi
+    visible="$(osascript_with_timeout -e 'tell application "System Events" to exists window 1 of process "TextEdit"' 2>/dev/null || true)"
     if [[ "$visible" == "true" ]]; then
       end="$(now_seconds)"
       osascript -e 'tell application "TextEdit" to quit saving no' >/dev/null 2>&1 || true
       perl -e 'printf "%.2f\n", ($ARGV[1] - $ARGV[0]) * 1000' "$start" "$end"
       return 0
     fi
-    sleep 0.01
+    sleep 0.05
   done
   osascript -e 'tell application "TextEdit" to quit saving no' >/dev/null 2>&1 || true
+  if [[ -n "${process_seen_at:-}" ]]; then
+    echo "TextEdit window detection unavailable; using process-visible lower-bound sample." >&2
+    perl -e 'printf "%.2f\n", ($ARGV[1] - $ARGV[0]) * 1000' "$start" "$process_seen_at"
+    return 0
+  fi
   echo "TextEdit timeout" >&2
   return 1
 }
@@ -52,7 +70,7 @@ measure_textedit_once() {
 wait_for_probe_finish() {
   local log="$1"
   for _ in $(seq 1 1000); do
-    if awk '/webview.didFinish/ { found=1 } END { exit found ? 0 : 1 }' "$log"; then
+    if awk '/webview.contentReady/ { found=1 } END { exit found ? 0 : 1 }' "$log"; then
       return 0
     fi
     sleep 0.01
@@ -62,7 +80,7 @@ wait_for_probe_finish() {
 
 probe_internal_time() {
   local log="$1"
-  awk '/webview.didFinish/ { value=$2 } END { sub(/ms$/, "", value); print value }' "$log"
+  awk '/webview.contentReady/ { value=$2 } END { sub(/ms$/, "", value); print value }' "$log"
 }
 
 measure_cuneiform_once() {
@@ -77,14 +95,14 @@ measure_cuneiform_once() {
   open -n -a "$APP" "$FILE" >/dev/null
   if ! wait_for_probe_finish "$log"; then
     cleanup_probe_env
-    echo "Cuneiform probe did not report webview.didFinish. Log: $log" >&2
+    echo "Cuneiform probe did not report webview.contentReady. Log: $log" >&2
     return 1
   fi
   end="$(now_seconds)"
   cleanup_probe_env
   internal="$(probe_internal_time "$log")"
   if [[ -z "$internal" ]]; then
-    echo "Cuneiform probe did not report webview.didFinish. Log: $log" >&2
+    echo "Cuneiform probe did not report webview.contentReady. Log: $log" >&2
     return 1
   fi
   perl -e 'printf "%.2f %.2f\n", ($ARGV[1] - $ARGV[0]) * 1000, $ARGV[2]' "$start" "$end" "$internal"

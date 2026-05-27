@@ -4,11 +4,11 @@ import Foundation
 enum StartupProbe {
     private static let clock = ContinuousClock()
     private static let start = clock.now
-    private static let enabled = ProcessInfo.processInfo.environment["CUNEIFORM_STARTUP_PROBE"] == "1"
+    static let isEnabled = ProcessInfo.processInfo.environment["CUNEIFORM_STARTUP_PROBE"] == "1"
     private static let autoTerminate = ProcessInfo.processInfo.environment["CUNEIFORM_STARTUP_PROBE_QUIT"] == "1"
 
     static func mark(_ label: String) {
-        guard enabled else { return }
+        guard isEnabled else { return }
         let elapsed = start.duration(to: clock.now)
         let milliseconds = Double(elapsed.components.seconds) * 1_000
             + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000
@@ -18,7 +18,7 @@ enum StartupProbe {
     @MainActor
     static func finish(_ label: String) {
         mark(label)
-        guard enabled, autoTerminate else { return }
+        guard isEnabled, autoTerminate else { return }
         NSApp.terminate(nil)
     }
 

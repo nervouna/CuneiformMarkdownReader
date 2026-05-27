@@ -39,6 +39,14 @@ The development app bundle is written to:
 .build/app/Cuneiform.app
 ```
 
+### Renderer fallback
+
+Cuneiform uses the native Markdown renderer by default. To compare or debug the legacy WebView renderer from Terminal:
+
+```bash
+CUNEIFORM_RENDERER=webview /Applications/Cuneiform.app/Contents/MacOS/Cuneiform path/to/file.md
+```
+
 ## Release
 
 `scripts/build_app.sh` produces an adhoc-signed development bundle. For public distribution, rebuild, sign with Developer ID, notarize, staple, then package the DMG:

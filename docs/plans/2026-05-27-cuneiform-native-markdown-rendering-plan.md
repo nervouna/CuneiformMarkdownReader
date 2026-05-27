@@ -14,7 +14,8 @@
 
 | Date | Version | Notes |
 | --- | --- | --- |
-| 2026-05-28 | 0.2 | Recorded benchmark outcome: keep MarkdownUI opt-in, keep WebView as default, and open TextKit follow-up plan. |
+| 2026-05-28 | 0.3 | Recorded final checked-bundle benchmark outcome: native passed the default-switch gate and Task 8 executed. |
+| 2026-05-28 | 0.2 | Recorded preliminary benchmark outcome that was later superseded by final checked-bundle evidence. |
 | 2026-05-27 | 0.1 | Initial native Markdown rendering plan, focused on MarkdownUI spike and measured default switch. |
 
 ## Baseline Evidence
@@ -31,7 +32,7 @@ Use this evidence from the current app before implementation:
 
 ## Scope
 
-This plan tests and, if justified by measurements, adopts MarkdownUI as Cuneiform's default first-render path. It does not implement a custom `NSTextView`/TextKit renderer in the same change set. If MarkdownUI misses the performance gate, remove the spike dependency and write a follow-up TextKit plan using the same measurement contract.
+This plan tests and, if justified by measurements, adopts MarkdownUI as Cuneiform's default first-render path. It does not implement a custom `NSTextView`/TextKit renderer in the same change set. Final checked-bundle measurements passed the default-switch gate, so the MarkdownUI native renderer is now the default path.
 
 ## File Structure
 
@@ -449,7 +450,7 @@ Before the final summaries, add:
 echo "Cuneiform renderer: ${CUNEIFORM_RENDERER:-native}"
 ```
 
-Outcome note: this default label was later changed to `webview` after Task 7 showed MarkdownUI should remain opt-in.
+Outcome note: this default label remains `native` after final checked-bundle evidence showed MarkdownUI passes the default-switch gate.
 
 - [ ] **Step 4: Add the guardrail to the full check script**
 
@@ -531,8 +532,8 @@ Use this decision table:
 | Result | Action |
 | --- | --- |
 | Native p50 `<= 550ms` and within 15% of TextEdit | Keep MarkdownUI and continue to Task 8. |
-| Native beats WebView internally but misses the default-switch gate | Keep the spike behind `CUNEIFORM_RENDERER=native`, do not switch default, and write a TextKit follow-up plan. |
-| Native is not faster than WebView internally | Remove MarkdownUI changes in a new cleanup commit and write a TextKit follow-up plan. |
+| Native beats WebView internally but does not pass the default-switch gate | Keep the spike behind `CUNEIFORM_RENDERER=native`, do not switch default, and write a dedicated follow-up plan. |
+| Native is not faster than WebView internally | Remove MarkdownUI changes in a new cleanup commit and write a dedicated follow-up plan. |
 
 Do not claim the renderer switch is successful without saving the benchmark output in the implementation notes or final response.
 
@@ -541,25 +542,32 @@ Do not claim the renderer switch is successful without saving the benchmark outp
 Benchmark output from the checked `/Applications/Cuneiform.app` bundle:
 
 - Native run:
-  - TextEdit: count=10 min=109.61ms p50=123.73ms p95=143.91ms max=143.91ms
-  - Cuneiform external: count=10 min=321.52ms p50=331.71ms p95=613.19ms max=613.19ms
-  - Cuneiform app-internal: count=10 min=213.35ms p50=220.87ms p95=226.54ms max=226.54ms
+  - Cuneiform renderer: native
+  - TextEdit: count=10 min=541.97ms p50=580.62ms p95=673.50ms max=673.50ms
+  - Cuneiform external: count=10 min=345.25ms p50=391.75ms p95=666.21ms max=666.21ms
+  - Cuneiform app-internal: count=10 min=244.68ms p50=264.69ms p95=285.73ms max=285.73ms
 - WebView run:
-  - TextEdit: count=10 min=112.59ms p50=124.44ms p95=134.86ms max=134.86ms
-  - Cuneiform external: count=10 min=439.79ms p50=454.14ms p95=513.78ms max=513.78ms
-  - Cuneiform app-internal: count=10 min=330.03ms p50=340.51ms p95=395.02ms max=395.02ms
+  - Cuneiform renderer: webview
+  - TextEdit: count=10 min=581.41ms p50=603.95ms p95=3081.26ms max=3081.26ms
+  - Cuneiform external: count=10 min=521.20ms p50=550.38ms p95=615.36ms max=615.36ms
+  - Cuneiform app-internal: count=10 min=397.10ms p50=421.45ms p95=509.40ms max=509.40ms
 
-TextEdit window detection used the process-visible lower-bound fallback. Native meets the `<= 550ms` external p50 gate and beats WebView internally, but it does not come within 15% of TextEdit in the same run. The implemented decision is:
+This final evidence was collected after rerunning `./scripts/check.sh`, installing `.build/app/Cuneiform.app` to `/Applications/Cuneiform.app`, verifying the default viewer, and confirming the installed executable and `Info.plist` hashes match `.build/app`. Native passes the default-switch gate:
 
-- Keep MarkdownUI available behind `CUNEIFORM_RENDERER=native`.
-- Keep unset and unknown renderer modes on WebView.
-- Do not execute Task 8.
+- Native external p50 is `391.75ms`, below the `<= 550ms` gate.
+- Native external p50 is not slower than TextEdit by more than 15% in the same run.
+- Native app-internal p50 is `264.69ms`, lower than WebView app-internal p50 `421.45ms`.
+
+The implemented decision is:
+
+- Use the MarkdownUI native renderer by default for unset and unknown renderer modes.
+- Keep the legacy WebView renderer available with `CUNEIFORM_RENDERER=webview`.
+- Execute Task 8.
 - Do not execute Task 9 because native is faster than WebView internally.
-- Continue with `docs/plans/2026-05-28-cuneiform-textkit-rendering-follow-up-plan.md`.
 
 ## Task 8: Make Native the Default Renderer if the Gate Passes
 
-Outcome note: Task 8 was not executed. Task 7 showed MarkdownUI did not pass the default-switch gate, so unset and unknown renderer modes now remain on WebView.
+Outcome note: Task 8 was executed after final checked-bundle evidence showed MarkdownUI passed the default-switch gate. Unset and unknown renderer modes now use the native renderer, while explicit `CUNEIFORM_RENDERER=webview` keeps the legacy WebView path available.
 
 **Files:**
 
@@ -699,6 +707,6 @@ Before declaring the plan implemented:
 ## Known Risks
 
 - MarkdownUI is in maintenance mode. This plan treats it as a measured spike, not a permanent architectural commitment without data.
-- SwiftUI native rendering may still be slower than TextKit for long documents. If the spike misses the gate, the next plan should target `swift-markdown` AST to `NSTextView`/TextKit.
+- SwiftUI native rendering may still be slower than a narrower attributed-string renderer for long documents. If future measurements regress, write a new plan from current evidence instead of reviving the superseded follow-up.
 - `onAppear` is an approximate content-ready probe for SwiftUI. If native results are close to the gate, add a visual screenshot or Accessibility-based confirmation before making release claims.
 - MarkdownUI visual output will not exactly match the current GitHub CSS from the WebView renderer. Performance is the priority for this plan.

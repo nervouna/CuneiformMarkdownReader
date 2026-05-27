@@ -614,6 +614,26 @@ git add Sources/SimpleMarkdownPreviewerApp/PreviewRendererMode.swift README.md
 git commit -m "doc: document native renderer fallback"
 ```
 
+### Final Verification Evidence
+
+Final verification after Task 8:
+
+- `./scripts/check.sh` passed.
+- `.build/app/Cuneiform.app` was installed to `/Applications/Cuneiform.app`.
+- `scripts/verify_default_viewer.sh /Applications/Cuneiform.app` passed outside the sandbox.
+- Installed executable hash matched `.build/app/Cuneiform.app/Contents/MacOS/Cuneiform`.
+- Installed `Info.plist` hash matched `.build/app/Cuneiform.app/Contents/Info.plist`.
+- `codesign --verify --deep --strict --verbose=2 /Applications/Cuneiform.app` passed.
+- Smoke document with heading, paragraph, link, inline code, list, block quote, and fenced code block reported `native.contentReady` with unset `CUNEIFORM_RENDERER`.
+- Final native measurement against the installed bundle:
+  - TextEdit: count=10 min=560.89ms p50=652.74ms p95=709.61ms max=709.61ms
+  - Cuneiform external: count=10 min=356.18ms p50=387.84ms p95=431.70ms max=431.70ms
+  - Cuneiform app-internal: count=10 min=241.05ms p50=278.21ms p95=311.18ms max=311.18ms
+- Final WebView measurement against the installed bundle:
+  - TextEdit: count=10 min=141.38ms p50=602.69ms p95=1002.72ms max=1002.72ms
+  - Cuneiform external: count=10 min=536.14ms p50=570.10ms p95=611.61ms max=611.61ms
+  - Cuneiform app-internal: count=10 min=417.62ms p50=451.44ms p95=492.93ms max=492.93ms
+
 ## Task 9: Cleanup if MarkdownUI Misses the Gate
 
 **Files:**

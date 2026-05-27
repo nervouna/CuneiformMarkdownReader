@@ -47,6 +47,17 @@ Cuneiform uses the native Markdown renderer by default. To compare or debug the 
 CUNEIFORM_RENDERER=webview /Applications/Cuneiform.app/Contents/MacOS/Cuneiform path/to/file.md
 ```
 
+### Startup measurement
+
+Measure startup against the installed app bundle opened through LaunchServices:
+
+```bash
+CUNEIFORM_RENDERER=native CUNEIFORM_APP=/Applications/Cuneiform.app ITERATIONS=10 ./scripts/measure_startup.sh path/to/file.md
+CUNEIFORM_RENDERER=webview CUNEIFORM_APP=/Applications/Cuneiform.app ITERATIONS=10 ./scripts/measure_startup.sh path/to/file.md
+```
+
+Before treating measurements as product evidence, rebuild with `./scripts/check.sh`, install `.build/app/Cuneiform.app` to `/Applications/Cuneiform.app`, verify the default Markdown viewer, and confirm the installed bundle matches `.build/app`.
+
 ## Release
 
 `scripts/build_app.sh` produces an adhoc-signed development bundle. For public distribution, rebuild, sign with Developer ID, notarize, staple, then package the DMG:

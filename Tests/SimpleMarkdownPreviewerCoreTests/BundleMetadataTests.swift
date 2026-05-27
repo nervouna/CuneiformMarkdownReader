@@ -15,6 +15,14 @@ struct BundleMetadataTests {
     }
 
     @Test
+    func declaresReleaseVersion() throws {
+        let plist = try infoPlist()
+
+        #expect(plist["CFBundleShortVersionString"] as? String == "0.2.0")
+        #expect(plist["CFBundleVersion"] as? String == "2")
+    }
+
+    @Test
     func declaresMarkdownContentTypeForLaunchServices() throws {
         let plist = try infoPlist()
         let declarations = try #require(plist["UTImportedTypeDeclarations"] as? [[String: Any]])

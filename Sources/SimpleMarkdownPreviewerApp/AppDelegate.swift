@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pendingOpenURLs: [URL] = []
+    private var openURLDeduplicator = OpenURLDeduplicator()
+    private var isStartupOpenDeduplicationActive = true
     private let appState = AppState()
     private let defaultViewerService = DefaultMarkdownViewerService()
     private var window: NSWindow?
@@ -31,7 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openURLHandler = appState.open
 
         if let firstPath = CommandLine.arguments.dropFirst().first {
-            appState.open(URL(fileURLWithPath: firstPath))
+            routeOpenURL(URL(fileURLWithPath: firstPath), deduplicateStartupOpen: true)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.finishStartupOpenDeduplication()
         }
     }
 
@@ -40,13 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        let shouldDeduplicate = isStartupOpenDeduplicationActive
         for filename in filenames {
-            let url = URL(fileURLWithPath: filename)
-            if let openURLHandler {
-                openURLHandler(url)
-            } else {
-                pendingOpenURLs.append(url)
-            }
+            routeOpenURL(URL(fileURLWithPath: filename), deduplicateStartupOpen: shouldDeduplicate)
         }
         sender.reply(toOpenOrPrint: .success)
     }
@@ -111,6 +112,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appState.updatePreferences { preferences in
             preferences.appearanceMode = mode
         }
+    }
+
+    private func routeOpenURL(_ url: URL, deduplicateStartupOpen: Bool = false) {
+        let urlToOpen: URL
+        if deduplicateStartupOpen {
+            guard let deduplicatedURL = openURLDeduplicator.nextURLToOpen(url) else {
+                return
+            }
+            urlToOpen = deduplicatedURL
+        } else {
+            urlToOpen = url.standardizedFileURL
+        }
+
+        if let openURLHandler {
+            openURLHandler(urlToOpen)
+        } else {
+            pendingOpenURLs.append(urlToOpen)
+        }
+    }
+
+    private func finishStartupOpenDeduplication() {
+        guard isStartupOpenDeduplicationActive else { return }
+        isStartupOpenDeduplicationActive = false
+        openURLDeduplicator.reset()
     }
 
     private func presentAlert(message: String, informativeText: String) {

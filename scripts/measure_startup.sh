@@ -145,7 +145,7 @@ for _ in $(seq 1 "$ITERATIONS"); do
   awk '{ print $2 }' <<<"$sample" >> "$cuneiform_internal_values"
 done
 
-echo "Cuneiform renderer: ${CUNEIFORM_RENDERER:-native}"
+echo "Cuneiform renderer: ${CUNEIFORM_RENDERER:-webview}"
 summarize "TextEdit" "$textedit_values"
 summarize "Cuneiform external" "$cuneiform_values"
 summarize "Cuneiform app-internal" "$cuneiform_internal_values"

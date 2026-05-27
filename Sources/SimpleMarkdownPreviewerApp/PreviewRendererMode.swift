@@ -11,7 +11,7 @@ enum PreviewRendererMode: Equatable {
         case "native":
             return .native
         default:
-            return .native
+            return .webview
         }
     }
 }

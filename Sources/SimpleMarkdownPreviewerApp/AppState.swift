@@ -7,7 +7,7 @@ final class AppState {
     enum ViewState: Equatable {
         case empty
         case loading
-        case rendered(title: String, html: String, baseURL: URL)
+        case rendered(title: String, source: String, html: String, baseURL: URL)
         case error(String)
     }
 
@@ -62,6 +62,7 @@ final class AppState {
         StartupProbe.mark("template.end")
         viewState = .rendered(
             title: document.url.lastPathComponent,
+            source: document.source,
             html: html,
             baseURL: document.url.deletingLastPathComponent()
         )

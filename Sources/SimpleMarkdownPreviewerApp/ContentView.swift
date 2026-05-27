@@ -15,7 +15,7 @@ struct ContentView: View {
             case .loading:
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .rendered(_, let html, let baseURL):
+            case .rendered(_, _, let html, let baseURL):
                 switch rendererMode {
                 case .native, .webview:
                     PreviewWebView(html: html, baseURL: baseURL)

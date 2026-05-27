@@ -20,9 +20,11 @@ final class AppState {
     private let template = HTMLTemplate()
 
     func open(_ url: URL) {
+        StartupProbe.mark("appState.open.begin")
         viewState = .loading
         do {
             let document = try fileIntake.loadMarkdownFile(at: url)
+            StartupProbe.mark("file.loaded")
             currentDocument = document
             try renderCurrentDocument()
         } catch {
@@ -51,15 +53,18 @@ final class AppState {
         }
 
         let body = try renderer.render(document.source, documentURL: document.url)
+        StartupProbe.mark("markdown.render.end")
         let html = try template.document(
             body: body,
             title: document.url.lastPathComponent,
             preferences: preferences
         )
+        StartupProbe.mark("template.end")
         viewState = .rendered(
             title: document.url.lastPathComponent,
             html: html,
             baseURL: document.url.deletingLastPathComponent()
         )
+        StartupProbe.mark("viewState.rendered.set")
     }
 }

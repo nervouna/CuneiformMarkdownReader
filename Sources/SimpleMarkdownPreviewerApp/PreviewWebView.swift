@@ -11,14 +11,17 @@ struct PreviewWebView: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> WKWebView {
+        StartupProbe.mark("webview.make.begin")
         let configuration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
+        StartupProbe.mark("webview.make.end")
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        StartupProbe.mark("webview.loadHTML.begin")
         webView.loadHTMLString(html, baseURL: baseURL)
     }
 
@@ -43,6 +46,11 @@ struct PreviewWebView: NSViewRepresentable {
                 NSWorkspace.shared.open(url)
             }
             decisionHandler(.cancel)
+        }
+
+        @MainActor
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            StartupProbe.finish("webview.didFinish")
         }
     }
 }

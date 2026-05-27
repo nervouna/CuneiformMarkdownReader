@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Bindable var appState: AppState
+    var rendererMode: PreviewRendererMode = .current()
 
     var body: some View {
         Group {
@@ -15,7 +16,10 @@ struct ContentView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .rendered(_, let html, let baseURL):
-                PreviewWebView(html: html, baseURL: baseURL)
+                switch rendererMode {
+                case .native, .webview:
+                    PreviewWebView(html: html, baseURL: baseURL)
+                }
             case .error(let message):
                 Text(message)
                     .foregroundStyle(.secondary)
